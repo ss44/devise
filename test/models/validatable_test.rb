@@ -1,4 +1,6 @@
 # encoding: UTF-8
+# frozen_string_literal: true
+
 require 'test_helper'
 
 class ValidatableTest < ActiveSupport::TestCase
@@ -24,6 +26,18 @@ class ValidatableTest < ActiveSupport::TestCase
     assert user.valid?
   end
 
+  test 'should allow duplicate email when email_scope attribute does not match' do
+    existing_user = create_user
+
+    user = new_user(email: existing_user.email)
+    user.username = nil
+    assert user.valid?
+    assert_no_match(/taken/, user.errors[:email].join)
+
+    user.save(validate: false)
+    assert user.valid?
+  end
+
   test 'should require correct email format if email has changed, allowing blank' do
     user = new_user(email: '')
     assert user.invalid?
@@ -31,7 +45,7 @@ class ValidatableTest < ActiveSupport::TestCase
 
     %w{invalid_email_format 123 $$$ () ☃}.each do |email|
       user.email = email
-      assert user.invalid?, 'should be invalid with email ' << email
+      assert user.invalid?, "should be invalid with email #{email}"
       assert_equal 'is invalid', user.errors[:email].join
     end
 
@@ -42,7 +56,7 @@ class ValidatableTest < ActiveSupport::TestCase
   test 'should accept valid emails' do
     %w(a.b.c@example.com test_mail@gmail.com any@any.net email@test.br 123@mail.test 1☃3@mail.test).each do |email|
       user = new_user(email: email)
-      assert user.valid?, 'should be valid with email ' << email
+      assert user.valid?, "should be valid with email #{email}"
       assert_blank user.errors[:email]
     end
   end
